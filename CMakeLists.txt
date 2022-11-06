@@ -7,7 +7,9 @@ cmake_minimum_required (VERSION 3.8)
 project ("WebFrameWork")
 # 包含子项目。
 include_directories(${PROJECT_SOURCE_DIR}/WebFrameWork/include/)
-
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 if(WIN32)
 	add_definitions(-DWIN32)
 endif()

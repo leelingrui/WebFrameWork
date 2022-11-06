@@ -7,22 +7,42 @@
 #include <Windows.h>
 #include <memory>
 #include <Serializer/Charset.h>
+#include <variant>
 #include <map>
+#include <vector>
+#include <sstream>
+#include <iostream>
 
 namespace Serializer
 {
-	class XmlSerializer;
 	class IXmlSerializable;
 	template <typename _Tp>
 	class XmlReader;
 	template <typename _Tp>
 	class XmlWriter;
+	typedef struct XmlTreeNode XMLTREE;
 
+	void SerializeElement(const std::string& className, const std::string& elementName, bool var, std::shared_ptr<XMLTREE> current);
+	void SerializeElement(const std::string& className, const std::string& elementName, int var, std::shared_ptr<XMLTREE> current);
+	void SerializeElement(const std::string& className, const std::string& elementName, const std::string& var, std::shared_ptr<XMLTREE> current);
+	void SerializeElement(const std::string& className, const std::string& elementName, IXmlSerializable& var, std::shared_ptr<XMLTREE> current);
 
+	void SerializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, bool var, std::shared_ptr<XMLTREE> current);
+	void SerializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, int var, std::shared_ptr<XMLTREE> current);
+	void SerializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, const std::string& var, std::shared_ptr<XMLTREE> current);
+
+	void DeserializeElement(const std::string& className, const std::string& elementName, bool& var, std::shared_ptr<XMLTREE> current);
+	void DeserializeElement(const std::string& className, const std::string& elementName, int& var, std::shared_ptr<XMLTREE> current);
+	void DeserializeElement(const std::string& className, const std::string& elementName, std::string& var, std::shared_ptr<XMLTREE> current);
+	void DeserializeElement(const std::string& className, const std::string& elementName, IXmlSerializable& var, std::shared_ptr<XMLTREE> current);
+
+	void DeserializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, bool& var, std::shared_ptr<XMLTREE> current);
+	void DeserializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, int& var, std::shared_ptr<XMLTREE> current);
+	void DeserializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, std::string& var, std::shared_ptr<XMLTREE> current);
 	class IXmlSerializable
 	{
-	protected:
-		virtual void Serialize(Serializer::XmlSerializer* serializer, bool serialize) = 0;
+	public:
+		virtual void Serialize(std::shared_ptr<XMLTREE> XmlTree, bool serialize) = 0;
 		template <typename _Tp>
 		friend class XmlReader;
 		template <typename _Tp>
@@ -30,79 +50,77 @@ namespace Serializer
 	};
 
 
-	typedef struct XmlTreeNode : public IXmlSerializable
+	typedef struct XmlTreeNode
 	{
-		virtual void Serialize(Serializer::XmlSerializer* serializer, bool serialize);
-		enum class XmlNodeType
-		{
-			m_element, m_object, m_empty
-		};
-		union data
-		{
-			enum XmlNodeType Type = XmlNodeType::m_empty;
-			std::string* element;
-			std::map<std::string, std::shared_ptr<struct XmlTreeNode>>* object;
-			~data();
-		};
-		void SetDataValue(std::string& value);
-		void SetDataValue(std::string& elementName, std::shared_ptr<struct XmlTreeNode> value);
-		void SetAttrbute(std::shared_ptr<std::string>& name, std::shared_ptr<std::string>& value);
+		void Serialize(std::stringbuf &result);
+		void SubSerialize(std::stringbuf& result);
+		void SetDataValue(std::shared_ptr<std::string>& value);
+		std::shared_ptr<struct XmlTreeNode> GetValueByObjectName(const std::string& objectName);
+		std::shared_ptr<std::string> GetValue();
+		std::shared_ptr<std::string> GetValue(const std::string& objectName);
+		std::shared_ptr<std::string> GetAttrByName(const std::string& attrName);
+		const size_t GetArraySize();
+		void SetDataValue(const std::string& elementName, std::shared_ptr<struct XmlTreeNode>& value);
+		void SetAttrbute(const std::string& name, std::shared_ptr<std::string>& value);
+		void SetAttrbute(const std::string& name,const std::string& value);
 		void SetName(std::shared_ptr<std::string>& m_name);
+		void SetDataValue(std::shared_ptr<struct XmlTreeNode>& value);
+		std::shared_ptr<std::string> GetName();
+		std::shared_ptr<struct XmlTreeNode> GetArrayByNo(size_t No);
+		void Clear();
 		std::shared_ptr<std::string> name;
-		std::shared_ptr<std::map<std::string, std::string>> attribute;
-		std::shared_ptr<union data> Data;
+		std::shared_ptr<std::map<std::string, std::shared_ptr<std::string>>> attribute;
+		std::variant<std::monostate, std::shared_ptr<std::string>, std::map<std::string, std::shared_ptr<struct XmlTreeNode>>, std::vector<std::shared_ptr<struct XmlTreeNode>>> Data;
 		XmlTreeNode();
 		~XmlTreeNode();
 	} XMLTREE;
 
 
-	class XmlSerializer
+	template <typename _Tp>
+	void SerializeElement(const std::string& className, const std::string& elementName, std::vector<_Tp>& var, std::shared_ptr<XMLTREE> current)
 	{
-	protected:
-		XmlSerializer();
-		virtual ~XmlSerializer();
-		virtual void Clear();
-		virtual std::string* Serialize();
-		virtual void SerializeElement(const std::string& className, const std::string& elementName, bool var);
-		virtual void SerializeElement(const std::string& className, const std::string& elementName, int var);
-		virtual void SerializeElement(const std::string& className, const std::string& elementName, const std::string& var);
-		virtual void SerializeElement(const std::string& className, const std::string& elementName, IXmlSerializable& var);
-
-		virtual void SerializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, bool var);
-		virtual void SerializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, int var);
-		virtual void SerializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, const std::string& var);
-
-		virtual void DeserializeElement(const std::string& className, const std::string& elementName, bool& var);
-		virtual void DeserializeElement(const std::string& className, const std::string& elementName, int& var);
-		virtual void DeserializeElement(const std::string& className, const std::string& elementName, std::string& var);
-		virtual void DeserializeElement(const std::string& className, const std::string& elementName, IXmlSerializable& var);
-
-		virtual void DeserializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, bool& var);
-		virtual void DeserializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, int& var);
-		virtual void DeserializeAttribute(const std::string& className, const std::string& elementName, const std::string& attributeName, std::string& var);
-	};
-
+		std::shared_ptr<XMLTREE> tmp(new XMLTREE), loop;
+		tmp->Data = std::vector<std::shared_ptr<XMLTREE>>();
+		current->SetDataValue(elementName, tmp);
+		for (int var1 = 0; var1 < var.size(); var1++)
+		{
+			loop.reset(new XMLTREE);
+			var[var1].Serialize(loop, true);
+			tmp->SetDataValue(loop);
+		}
+	}
 
 
 	template <typename _Tp>
-	class XmlReader : public XmlSerializer
+	void DeserializeElement(const std::string& className, const std::string& elementName, std::vector<_Tp>& var, std::shared_ptr<XMLTREE> current)
 	{
-		static_assert(std::is_base_of<IXmlSerializable, _Tp>::value, "");
+		if (className != *(current->GetName())) throw std::logic_error("class name not correct");
+		size_t size = current->GetValueByObjectName(elementName)->GetArraySize();
+		var.resize(size);
+		for (int var1 = 0; var1 < size; var1++)
+		{
+			var[var1].Serialize(current->GetValueByObjectName(elementName)->GetArrayByNo(var1), false);
+		}
+	}
+
+
+	template <typename _Tp>
+	class XmlReader
+	{
+		static_assert(std::is_base_of<IXmlSerializable, _Tp>::value, "attribute must be devided from IXmlSerializable");
 	public:
 		XmlReader()
 		{
 		};
 		_Tp* Deserialize(std::string* str)
 		{
-			//root = std::make_shared<XMLTREE>(new XMLTREE);
-			//base = std::make_shared<XMLTREE>(new XMLTREE);
 			aimStr = str;
 			root.reset(new XMLTREE);
 			base.reset(new XMLTREE);
 			_Tp* obj = new _Tp;
 			BuildTree();
-			obj->Serialize(this, true);
-			return nullptr;
+			obj->Serialize(root, false);
+			return obj;
 		};
 		inline void GetBaseData()
 		{
@@ -110,13 +128,15 @@ namespace Serializer
 			while (aimStr->at(ptr) != '>')
 			{
 				name = GetAttrName();
+				SkipBlank();
 				if (aimStr->at(ptr) != '=')
 				{
 					throw std::logic_error("attribute must have value");
 				}
 				ptr++;
+				SkipBlank();
 				value = GetAttrValue();
-				base->SetAttrbute(name, value);
+				base->SetAttrbute(*name, value);
 				if (aimStr->at(ptr) == '?') ptr++;
 			}
 			ptr++;
@@ -190,14 +210,15 @@ namespace Serializer
 					switch (aimStr->at(ptr))
 					{
 					case 'a':
-						if (aimStr->compare(ptr, 4, "amp"))
+						if (!aimStr->compare(ptr, 4, "amp;"))
 						{
 							value->push_back('&');
-							ptr += 3;
+							ptr += 4;
 						}
-						else if (aimStr->compare(ptr, 4, "apos"))
+						else if (!aimStr->compare(ptr, 4, "apos;"))
 						{
 							value->push_back('\'');
+							ptr += 4;
 						}
 						else
 						{
@@ -205,7 +226,7 @@ namespace Serializer
 						}
 						break;
 					case 'l':
-						if (aimStr->compare(ptr, 3, "lt;"))
+						if (!aimStr->compare(ptr, 3, "lt;"))
 						{
 							value->push_back('<');
 							ptr += 3;
@@ -216,7 +237,7 @@ namespace Serializer
 						}
 						break;
 					case 'g':
-						if (aimStr->compare(ptr, 3, "gt;"))
+						if (!aimStr->compare(ptr, 3, "gt;"))
 						{
 							value->push_back('>');
 							ptr += 3;
@@ -227,7 +248,7 @@ namespace Serializer
 						}
 						break;
 					case 'q':
-						if (aimStr->compare(ptr, 3, "quot;"))
+						if (!aimStr->compare(ptr, 3, "quot;"))
 						{
 							value->push_back('\"');
 							ptr += 3;
@@ -250,32 +271,29 @@ namespace Serializer
 		inline void GetElement(std::shared_ptr<XMLTREE>& AimElement, std::shared_ptr<std::string> thisElementName)
 		{
 			std::shared_ptr<std::string> name, value;
-			SkipBlank();
 			AimElement->SetName(thisElementName);
-			while (aimStr->at(ptr) != '>')
+			SkipBlank();
+			if (isalpha(aimStr->at(ptr)) || ispunct(aimStr->at(ptr)))
 			{
-				if (isalpha(aimStr->at(ptr)) || ispunct(aimStr->at(ptr)))
+				while (aimStr->at(ptr) != '>')
 				{
+					name = GetAttrName();
 					SkipBlank();
-					while (aimStr->at(ptr) != '>')
+					if (aimStr->at(ptr) != '=')
 					{
-						ptr++;
-						name = GetAttrName();
-						if (aimStr->at(ptr) != '=')
-						{
-							throw std::logic_error("attribute must have value");
-						}
-						ptr++;
-						value = GetAttrValue();
-						AimElement->SetAttrbute(value, name);
+						throw std::logic_error("attribute must have value");
 					}
+					ptr++;
+					SkipBlank();
+					value = GetAttrValue();
+					AimElement->SetAttrbute(*name, value);
 				}
 			}
 			ptr++;
 			if (aimStr->at(ptr) != '<')
 			{
 				value = GetValue();
-				AimElement->SetDataValue(*value);
+				AimElement->SetDataValue(value);
 			}
 			else
 			{
@@ -286,17 +304,19 @@ namespace Serializer
 				GetElement(subElement, name);
 			}
 			SkipBlank();
-			if (aimStr->at(ptr) == '<') ptr++;
-			if (aimStr->at(ptr) == '/') ptr++;
-			else
+			while (true)
 			{
-				std::shared_ptr<XMLTREE> subElement(new XMLTREE);
-				name = GetElementName();
-				AimElement->SetDataValue(*name, subElement);
-				GetElement(subElement, name);
 				if (aimStr->at(ptr) == '<') ptr++;
-				if (aimStr->at(ptr) == '/') ptr++;
+				if (aimStr->at(ptr) == '/') break;
+				else
+				{
+					std::shared_ptr<XMLTREE> subElement(new XMLTREE);
+					name = GetElementName();
+					AimElement->SetDataValue(*name, subElement);
+					GetElement(subElement, name);
+				}
 			}
+			ptr++;
 			name = GetElementName();
 			ptr++;
 			if (*name != *(AimElement->name)) throw std::logic_error("element must close");
@@ -308,58 +328,62 @@ namespace Serializer
 			std::shared_ptr<std::string> name, value;
 			int counter = 0;
 			SkipBlank();
-			while (aimStr->at(ptr) == '<')
+			ptr++;
+			if (isalpha(aimStr->at(ptr)) || ispunct(aimStr->at(ptr)))
 			{
-				ptr++;
+				name = GetElementName();
+				AimElement->SetName(name);
+				SkipBlank();
 				while (aimStr->at(ptr) != '>')
 				{
-					if (aimStr->at(ptr) == '/') break;
-					counter++;
-					if (isalpha(aimStr->at(ptr)) || ispunct(aimStr->at(ptr)))
+					name = GetAttrName();
+					SkipBlank();
+					if (aimStr->at(ptr) != '=')
 					{
-						ptr++;
-						name = GetElementName();
-						AimElement->SetName(name);
-						SkipBlank();
-						while (aimStr->at(ptr) != '>')
-						{
-							name = GetAttrName();
-							if (aimStr->at(ptr) == '=')
-							{
-								throw std::logic_error("attribute must have value");
-							}
-							ptr++;
-							value = GetAttrValue();
-							AimElement->SetAttrbute(value, name);
-						}
+						throw std::logic_error("attribute must have value");
 					}
 					ptr++;
-					if (aimStr->at(ptr) != '<')
-					{
-						value = GetValue();
-						AimElement->SetDataValue(*value);
-					}
-					else
-					{
-						ptr++;
-						std::shared_ptr<XMLTREE> subElement(new XMLTREE);
-						name = GetElementName();
-						AimElement->SetDataValue(*name, subElement);
-						GetElement(subElement, name);
-					}
 					SkipBlank();
+					value = GetAttrValue();
+					AimElement->SetAttrbute(*name, value);
+				}
+			}
+			ptr++;
+			if (aimStr->at(ptr) != '<')
+			{
+				value = GetValue();
+				AimElement->SetDataValue(value);
+			}
+			else
+			{
+				ptr++;
+				std::shared_ptr<XMLTREE> subElement(new XMLTREE);
+				name = GetElementName();
+				AimElement->SetDataValue(*name, subElement);
+				GetElement(subElement, name);
+			}
+			SkipBlank();
+			while (true)
+			{
+				if (aimStr->at(ptr) == '<') ptr++;
+				if (aimStr->at(ptr) == '/') break;
+				else
+				{
+					std::shared_ptr<XMLTREE> subElement(new XMLTREE);
+					name = GetElementName();
+					AimElement->SetDataValue(*name, subElement);
+					GetElement(subElement, name);
 				}
 			}
 			ptr++;
 			name = GetElementName();
+			ptr++;
 			if (*name != *(AimElement->name)) throw std::logic_error("element must close");
 		};
 
 
 		void BuildTree()
 		{
-			std::shared_ptr<XMLTREE> tmpTree;
-			std::shared_ptr<std::string> tmpStr;
 			if (aimStr->at(ptr) == '<')
 			{
 				ptr++;
@@ -368,16 +392,13 @@ namespace Serializer
 					ptr += 4;
 					GetBaseData();
 				}
-				tmpTree.reset(new XMLTREE);
-				GetElement(tmpTree);
+				GetElement(root);
 			}
 
 		};
 		void Clear()
 		{
 			ptr = 0;
-			root->~XmlTreeNode();
-			base->~XmlTreeNode();
 		};
 		void checkElementName(std::shared_ptr<std::string>& name)
 		{
@@ -391,8 +412,7 @@ namespace Serializer
 			if (t == 3) throw std::logic_error("element name shouldn\'t be start as xml");
 		};
 	protected:
-		std::shared_ptr<XMLTREE> root;
-		std::shared_ptr<XMLTREE> base;
+		std::shared_ptr<XMLTREE> root, base;
 		ICharsetEncoding* charset;
 		size_t ptr = 0;
 		std::string* aimStr;
@@ -400,31 +420,37 @@ namespace Serializer
 
 
 	template <typename _Tp>
-	class XmlWriter : public XmlSerializer
+	class XmlWriter
 	{
-		static_assert(std::is_base_of<IXmlSerializable, _Tp>::value);
+		static_assert(std::is_base_of<IXmlSerializable, _Tp>::value, "attribute must be devided from IXmlSerializable");
 	public:
-		XmlWriter();
-		~XmlWriter();
-		std::shared_ptr<std::stringbuf> Write(_Tp* object);
+		XmlWriter() {};
+		~XmlWriter() {};
+		void Clear()
+		{
+			buffer->str("");
+		}
+		std::shared_ptr<std::stringbuf> Write(_Tp& object)
+		{
+			std::shared_ptr<XMLTREE> root(new XMLTREE);
+			object.Serialize(root, true);
+			buffer.reset(new std::stringbuf);
+			root->Serialize(*buffer);
+			return buffer;
+		}
 	protected:
+		ICharsetEncoding* charset;
 		std::shared_ptr<std::stringbuf> buffer;
-		XmlSerializer seralizer;
 	};
-#define BEGIN_XML_SERIALIZER_BASE(className, baseClassName)   \
-		virtual void Serialize(Serializer::XmlSerializer * serializer, bool serialize) \
-		{                                                                  \
-			const std::tring __className = #className;                    \
-																		   \
-			if (std::is_base_of<baseClassName, IXmlSerializable>::Yes)      \
-			{                                                               \
-				baseClassName::Serialize(serializer, serialize);            \
-			}
-
 #define BEGIN_XML_SERIALIZER(className) \
-		virtual void Serialize(Serializer::XmlSerializer * serializer, bool serialize) \
+		virtual void Serialize(std::shared_ptr<XMLTREE> XmlTree, bool serialize) \
 		{                                                                  \
-			const std::string __className = #className;
+			const std::string __className = #className;\
+			if(serialize) \
+			{\
+				std::shared_ptr<std::string> __objectName(new std::string(__className)); \
+				XmlTree->SetName(__objectName); \
+			}
 
 #define END_XML_SERIALIZER()    \
 		}
@@ -432,21 +458,21 @@ namespace Serializer
 #define XML_ELEMENT(var)        \
 			if (serialize)          \
 			{                       \
-				serializer->SerializeElement(__className, #var, var); \
+				Serializer::SerializeElement(__className, #var, var, XmlTree); \
 			}   \
 			else \
 			{   \
-				serializer->DeserializeElement(__className, #var, var);   \
+				Serializer::DeserializeElement(__className, #var, var, XmlTree);   \
 			}
 
 #define XML_ATTRIBUTE(element, var)      \
 			if (serialize)          \
 			{                       \
-				serializer->SerializeAttribute(__className, #element, #var, var); \
+				Serializer::SerializeAttribute(__className, #element, #var, var, XmlTree); \
 			}   \
 			else \
 			{ \
-				serializer->DeserializeAttribute(__className, #element, #var, var); \
+				Serializer::DeserializeAttribute(__className, #element, #var, var, XmlTree); \
 			}
 };
 #endif
