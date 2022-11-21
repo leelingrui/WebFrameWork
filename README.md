@@ -4,8 +4,7 @@
 
 >### XMLSerialize
 >---
->xml tree object will be store at this xml data structure<br>
->$$\Downarrow$$
+>xml tree object will be store at this xml data structure$$\Downarrow$$
 >```cpp
 >typedef struct XmlTreeNode
 >{
@@ -32,6 +31,6 @@
 >	~XmlTreeNode();
 >} XMLTREE;
 >```
->this structure inclue set tree node attribute¡¢name¡¢value functons you can safty store your data by
+>this structure inclue set tree node attributeÂ¡Â¢nameÂ¡Â¢value functons you can safty store your data by
 >use these provided functions.
 
