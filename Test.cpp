@@ -10,8 +10,8 @@
 #include <MemoryPool.h>
 #include <chrono>
 #include <coroutine>
-
-
+#include <stdio.h>
+#include <type_traits>
 using namespace std;
 using namespace Serializer;
 using namespace thread;
@@ -81,12 +81,31 @@ int testfuncc(const int c)
 //	std::coroutine_handle<HelloPromise> handle;
 //};
 //
+
+threadPoolBase tp(12);
+
 Task<int> hello() {
 	std::cout << "Hello " << std::endl;
-	co_await std::suspend_always{};
+	co_await Task<int>::suspend(&tp);
 	std::cout << "world!" << std::endl;
-	co_yield 99;
+	co_return 5;
 }
+
+int test() {
+	cout << "hi";
+	return 0;
+}
+
+class C
+{
+public:
+	int print()
+	{
+		cout << str << endl;
+		return 0;
+	}
+	string str;
+};
 
 int main()
 {
@@ -106,9 +125,9 @@ int main()
 	//logger.Log(LogLevel::Debug, EventId(5), std::logic_error("error"), "test");
 	//threadPoolBase pool;
 
-	threadPoolBase pool(24);
-	for(int var = 0; var < 6000; var++)
-		pool.submit(testfuncc, var);
+	//threadPoolBase pool(24);
+	//for(int var = 0; var < 6000; var++)
+	//	pool.submit(testfuncc, var);
 	//std::this_thread::sleep_for(std::chrono::seconds(10));
 	//Task task = hello();
 	//while (!task.finished()) task.handle.resume();
@@ -116,5 +135,14 @@ int main()
 	//task = hello();
 	//while (!task.finished()) task.handle.resume();
 	//task.handle.destroy();
+	//int c = asm_getcf();
+
+	auto fu = tp.submit(hello);
+	//fu = tp.submit(test);
+	//fu.GetResult();
+	std::this_thread::sleep_for(1s);
+	tp.resume<Task<int>>(fu);
+	std::cout << fu.GetResult() << std::endl;
+	std::this_thread::sleep_for(100s);
 	return 0;
 }

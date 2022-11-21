@@ -197,7 +197,7 @@ namespace Serializer
 		case OBJECT:
 		{
 			std::map<std::string, std::shared_ptr<struct XmlTreeNode>>& result = std::get<OBJECT>(Data);
-			std::map<std::string, std::shared_ptr<struct XmlTreeNode>>::iterator iter = result.find(elementName);
+			std::map<std::string, std::shared_ptr<struct XmlTreeNode>>::iterator&& iter = result.find(elementName);
 			if (iter != result.end())
 			{
 				std::shared_ptr<XMLTREE> tmp(iter->second);
