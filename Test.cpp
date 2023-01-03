@@ -1,5 +1,5 @@
 #include <iostream>
-#include <Windows.h>
+#include <Server/TCP.h>
 #include <string>
 #include <Serializer/Xml.h>
 #include <vector>
@@ -9,52 +9,75 @@
 #include <Logger.h>
 #include <MemoryPool.h>
 #include <chrono>
+#include <spin_lock.h>
+#include <ConcurrentAlloc.h>
 #include <coroutine>
-#include <stdio.h>
 #include <type_traits>
 using namespace std;
 using namespace Serializer;
 using namespace thread;
-using namespace Logger;
+using namespace logger;
 using namespace memory;
-class site : public IXmlSerializable
-{
-public:
-	site()
-	{
+using namespace lock;
 
-	};
-	BEGIN_XML_SERIALIZER(site)
-	XML_ELEMENT(name)
-	XML_ELEMENT(url)
-	END_XML_SERIALIZER()
-public:
-	string name;
-	string url;
-};
+//class site : public IXmlSerializable
+//{
+//public:
+//	site()
+//	{
+//
+//	};
+//	BEGIN_XML_SERIALIZER(site) // you need mark your class name and variables
+//	XML_ELEMENT(name)
+//	XML_ELEMENT(url)
+//	END_XML_SERIALIZER()
+//public:
+//	string name;
+//	string url;
+//};
+//
+//class sites : public IXmlSerializable
+//{
+//public:
+//	std::vector<site> site;
+//	std::string name;
+//	BEGIN_XML_SERIALIZER(sites)
+//	XML_ELEMENT(site)
+//	XML_ATTRIBUTE(sites, name) // mark the name of the node to which the tag attribute belongs
+//	END_XML_SERIALIZER()
+//};
 
-class sites : public IXmlSerializable
-{
-public:
-	std::vector<site> site;
-	std::string name;
-	BEGIN_XML_SERIALIZER(sites)
-	XML_ELEMENT(site)
-	XML_ATTRIBUTE(sites, name)
-	END_XML_SERIALIZER()
-};
+//int main()
+//{
+//	string str = "<?xml version=\"1.0\" encoding=\"utf - 8\" standalone=\"no\"?><sites name = \"test deserlize object\"><site><name>RUNOOB</name><url>www.runoob.com</url></site><site><name>Google</name><url>www.google.com</url></site><site><name>Facebook</name><url>www.facebook.com</url></site></sites>";
+//	XmlReader<sites> reader;
+//	sites* sitesObject = reader.Deserialize(&str);
+//	cout << sitesObject->name << endl;
+//	for (int var = 0; var < sitesObject->site.size(); var++)
+//	{
+//		cout << sitesObject->site[var].name << endl;
+//		cout << sitesObject->site[var].url << endl;
+//		cout << "\n";
+//	}
+//	XmlWriter<sites> writer;
+//	std::fstream of;
+//	of.open("test.xml", 2);
+//	writer.Write(*sitesObject, &of);
+//	return EXIT_SUCCESS;
+//}
 
 
-int testfunc()
-{
-	return 1;
-}
 
-int testfuncc(const int c)
-{
-	cout << c << endl;
-	return c;
-}
+//int testfunc()
+//{
+//	return 1;
+//}
+//
+//int testfuncc(const int c)
+//{
+//	cout << c << endl;
+//	return c;
+//}
 
 
 //struct HelloCoroutine {
@@ -64,7 +87,7 @@ int testfuncc(const int c)
 //			return std::coroutine_handle<HelloPromise>::from_promise(*this);
 //		}
 //		std::suspend_never initial_suspend() { return {}; }
-//		// ÔÚ final_suspend() ¹ÒÆðÁËÐ­³Ì£¬ËùÒÔÒªÊÖ¶¯ destroy
+//		// ï¿½ï¿½ final_suspend() ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð­ï¿½Ì£ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ö¶ï¿½ destroy
 //		std::suspend_always final_suspend() noexcept { return {}; }
 //		std::suspend_always yield_value(std::string_view value) {
 //			value_ = value;
@@ -86,7 +109,7 @@ threadPoolBase tp(12);
 
 Task<int> hello() {
 	std::cout << "Hello " << std::endl;
-	co_await Task<int>::suspend(&tp);
+	std::cout << co_await suspend_task<int>(&tp) << endl;
 	std::cout << "world!" << std::endl;
 	co_return 5;
 }
@@ -107,42 +130,34 @@ public:
 	string str;
 };
 
+class TcpServer : public Net::TcpServerBase
+{
+public:
+	TcpServer(const char* address, const unsigned short port, ULONG maxConn) : TcpServerBase(address, port, maxConn) {};
+	void session_down_side(Net::IOContext* context) {};
+	void session_up_side(Net::IOContext* context) {};
+	void presentation_up_side(Net::IOContext* context) {};
+	void presentation_down_side(Net::IOContext* context) {};
+protected:
+	void application(Net::IOContext* context)
+	{
+		string_view received = Recv(context);
+	};
+private:
+};
+
 int main()
 {
-	
-	//string test = "<?xml version = \"1.0\" encoding = \"UTF - 8\"?><sites name = \"test\"><site><name>RUNOOB</name><url>www.runoob.com</url></site><site><name>Google</name><url>www.google.com</url></site><site><name>Facebook</name><url>www.facebook.com</url></site></sites>";
-	//XmlReader<sites> reader;
-	//sites *result = reader.Deserialize(&test);
-	//XmlWriter<sites> writer;
-	//std::shared_ptr<std::stringbuf> sb = writer.Write(*result);
-	//delete result;
-	//test = sb->str();
-	//cout << test << endl;
-	//reader.Clear();
-	//result = reader.Deserialize(&test);
-	//string path("./test/testlog.log"), name("test");
-	//ILoggerProvider logger(path);
-	//logger.Log(LogLevel::Debug, EventId(5), std::logic_error("error"), "test");
-	//threadPoolBase pool;
-
-	//threadPoolBase pool(24);
-	//for(int var = 0; var < 6000; var++)
-	//	pool.submit(testfuncc, var);
-	//std::this_thread::sleep_for(std::chrono::seconds(10));
-	//Task task = hello();
-	//while (!task.finished()) task.handle.resume();
-	//task.handle.destroy();
-	//task = hello();
-	//while (!task.finished()) task.handle.resume();
-	//task.handle.destroy();
-	//int c = asm_getcf();
-
-	auto fu = tp.submit(hello);
-	//fu = tp.submit(test);
-	//fu.GetResult();
-	std::this_thread::sleep_for(1s);
-	tp.resume<Task<int>>(fu);
-	std::cout << fu.GetResult() << std::endl;
-	std::this_thread::sleep_for(100s);
-	return 0;
+	TcpServer server("127.0.0.1", 12345, 50);
+	char* s;
+	s = (char*)malloc(13);
+	if (s == nullptr) return EXIT_SUCCESS;
+	strcpy(s, "hello world!");
+	string* str = new string(s);
+	delete str;
+	cout << s << endl;
+	//int err = WSAGetLastError();
+	//server.Start();
+	//Sleep(100000000);
+	return EXIT_SUCCESS;
 }

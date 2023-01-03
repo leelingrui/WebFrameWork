@@ -2,7 +2,7 @@
 
 asm_getcf PROC
 	mov EAX,6
-	inc EAX
+	lock ADD QWORD PTR [RSP], 50
 	ret
 asm_getcf endp
 end

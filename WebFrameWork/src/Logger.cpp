@@ -1,113 +1,105 @@
 #include <Logger.h>
 #include <cstdarg>
 
-namespace Logger{
-	inline int EventId::GetId()
+namespace logger {
+	int EventId::GetId() const
 	{
 		return Id;
 	}
 
 
-	EventId::EventId(int id, std::string* message)
+	EventId::EventId(int id, const std::string& message) : Name(message)
 	{
 		Id = id;
-		if(message) Name = *message;
 	}
 
 
-	inline EventId::EventId()
+	EventId::EventId() : Name()
 	{
 		Id = 0;
 	}
 
 
-	inline std::string& EventId::GetEventName()
+	const std::string& EventId::GetEventName() const
 	{
 		return Name;
 	}
 
 
-	inline void ILoggerProvider::LogDiagnose(EventId eventId, std::string message)
+	void ILoggerProvider::LogDiagnose(const EventId& eventId, const std::string& message)
 	{
 		Log(LogLevel::Diagnose, eventId, message);
 	}
 
 
-	inline void ILoggerProvider::LogDiagnose(EventId eventId, std::exception exception, std::string message)
+	void ILoggerProvider::LogDiagnose(const EventId& eventId, const std::exception& exception, const std::string& message)
 	{
 		Log(LogLevel::Diagnose, eventId, exception, message);
 	}
 
 
-	inline void ILoggerProvider::LogDebug(EventId eventId, std::string message)
+	void ILoggerProvider::LogDebug(const EventId& eventId, const std::string& message)
 	{
 		Log(LogLevel::Debug, eventId, message);
 	}
 
 
-	inline void ILoggerProvider::LogDebug(EventId eventId, std::exception exception, std::string message)
+	void ILoggerProvider::LogDebug(const EventId& eventId, const std::exception& exception, const std::string& message)
 	{
 		Log(LogLevel::Debug, eventId, exception, message);
 	}
 
 
-	inline 	void ILoggerProvider::LogInformation(EventId eventId, std::string message)
+	void ILoggerProvider::LogInformation(const EventId& eventId, const std::string& message)
 	{
 		Log(LogLevel::Information, eventId, message);
 	}
 
 
-	inline 	void ILoggerProvider::LogInformation(EventId eventId, std::exception exception, std::string message)
+	void ILoggerProvider::LogInformation(const EventId& eventId, const std::exception& exception, const std::string& message)
 	{
 		Log(LogLevel::Information, eventId, exception, message);
 	}
 
 
-	inline void ILoggerProvider::LogWaring(EventId eventId, std::string message)
+	void ILoggerProvider::LogWaring(const EventId& eventId, const std::string& message)
 	{
 		Log(LogLevel::Waring, eventId, message);
 	}
 
 
-	inline void ILoggerProvider::LogWaring(EventId eventId, std::exception exception, std::string message)
+	void ILoggerProvider::LogWaring(const EventId& eventId, const std::exception& exception, const std::string& message)
 	{
 		Log(LogLevel::Waring, eventId, exception, message);
 	}
 
 
-	inline void ILoggerProvider::LogError(EventId eventId, std::string message)
+	void ILoggerProvider::LogError(const EventId& eventId, const std::string& message)
 	{
 		Log(LogLevel::Error, eventId, message);
 
 	}
 
 
-	inline 	void ILoggerProvider::LogError(EventId eventId, std::exception exception, std::string message)
+	void ILoggerProvider::LogError(const EventId& eventId, const std::exception& exception, const std::string& message)
 	{
 		Log(LogLevel::Error, eventId, exception, message);
 	}
 
 
-	inline void ILoggerProvider::LogFatal(EventId eventId, std::string message)
+	void ILoggerProvider::LogFatal(const EventId& eventId, const std::string& message)
 	{
 		Log(LogLevel::Fatal, eventId, message);
 	}
 
 
-	inline void ILoggerProvider::LogFatal(EventId eventId, std::exception exception, std::string message)
+	void ILoggerProvider::LogFatal(const EventId& eventId, const std::exception& exception, const std::string& message)
 	{
 		Log(LogLevel::Fatal, eventId, exception, message);
 	}
 
 
-	inline ILoggerProvider::ILoggerProvider()
-	{
-		MaxSize = 0;
-		outputStreamArray.emplace_back(&std::cout);
-	}
-
-
-	inline bool ILoggerProvider::localFileSystemIsOpen()
+	bool ILoggerProvider::localFileSystemIsOpen()
 	{
 		return localFileSystem;
 	}
@@ -122,7 +114,7 @@ namespace Logger{
 	}
 
 
-	inline void ILoggerProvider::Rotate()
+	void ILoggerProvider::Rotate()
 	{
 		char timeformatstring[32];
 		time_t time_tick = time(NULL);
@@ -150,7 +142,7 @@ namespace Logger{
 	}
 
 
-	inline void ILoggerProvider::Log(LogLevel level, EventId eventId, std::string message)
+	void ILoggerProvider::Log(const LogLevel level, const EventId& eventId, const std::string& message)
 	{
 		if (currentLogLevel > level) return;
 		switch (level)
@@ -196,18 +188,18 @@ namespace Logger{
 		default:
 			break;
 		}
-		if (localFileSystem != nullptr && localFileSystem->tellp() / ((long long)1 << 20) > MaxSize)
+		if (localFileSystem != nullptr && localFileSystem->tellp() / ((size_t)1 << 20) > MaxSize)
 			Rotate();
 	}
 
 
-	inline void ILoggerProvider::setLogLevel(LogLevel level)
+	void ILoggerProvider::setLogLevel(const LogLevel& level)
 	{
 		currentLogLevel = level;
 	}
 
 
-	inline void ILoggerProvider::Log(LogLevel level, EventId eventId, std::exception exception, std::string message)
+	void ILoggerProvider::Log(const LogLevel level, const EventId& eventId, const std::exception& exception, const std::string& message)
 	{
 		if (currentLogLevel > level) return;
 		switch (level)
@@ -253,26 +245,40 @@ namespace Logger{
 		default:
 			break;
 		}
-		if (localFileSystem != nullptr && localFileSystem->tellp() / ((long long)1 << 20) > MaxSize)
+		if (localFileSystem != nullptr && localFileSystem->tellp() / ((size_t)1 << 20) > MaxSize)
 			Rotate();
 	}
 
 
-	inline void ILoggerProvider::insertNewOutputStream(std::ostream& output)
+	void ILoggerProvider::insertNewOutputStream(std::ostream& output)
 	{
 		outputStreamArray.emplace_back(&output);
 	}
 
 
-	inline void ILoggerProvider::setConsole(bool flag)
+	void ILoggerProvider::setConsole(bool flag)
 	{
 		haveConsole = true;
 	}
 
+	void ILoggerProvider::resetLoggerMaxSize(size_t _size)
+	{
+		MaxSize = _size;
+	}
+
+	ILoggerProvider::ILoggerProvider()
+	{
+		MaxSize = 0;
+		currentLogLevel = LogLevel::Information;
+		haveConsole = true;
+		outputStreamArray.emplace_back(&std::cout);
+		localFileSystem = nullptr;
+	}
 
 	ILoggerProvider::ILoggerProvider(std::string& logFilePath, size_t MaxLogSizePerPage)
 	{
-		MaxSize = 0;
+		haveConsole = true;
+		MaxSize = MaxLogSizePerPage;
 		LogDir = logFilePath;
 		std::filesystem::path openpath(LogDir);
 		std::ofstream* output = new std::ofstream;
@@ -283,6 +289,10 @@ namespace Logger{
 		{
 			localFileSystem = output;
 			outputStreamArray.emplace_back(localFileSystem);
+		}
+		else
+		{
+			localFileSystem = nullptr;
 		}
 	}
 }

@@ -9,8 +9,10 @@
 #include <filesystem>
 #include <time.h>
 
-namespace Logger
+namespace logger
 {
+	class ILoggerProvider;
+	using Logger = ILoggerProvider;
 	enum class LogLevel
 	{
 		Diagnose,
@@ -18,7 +20,7 @@ namespace Logger
 		Information,
 		Waring,
 		Error,
-		Fatal, 
+		Fatal,
 		None
 	};
 
@@ -31,50 +33,51 @@ namespace Logger
 		/// </summary>
 		/// <param name="id">The numeric identifier for this event.</param>
 		/// <param name="message">The name of this event.</param>
-		EventId(int id, std::string* message = nullptr);
-		std::string& GetEventName();
-		int GetId();
+		EventId(int id, const std::string &message = "");
+		const std::string &GetEventName() const;
+		int GetId() const;
+
 	private:
 		int Id;
-		std::string Name;
+		const std::string Name;
 	};
 
 	class ILoggerProvider
 	{
 	public:
 		ILoggerProvider();
-		ILoggerProvider(std::string& logFilePath, size_t MaxLogSizePerPage = 256);
+		ILoggerProvider(std::string &logFilePath, size_t MaxLogSizePerPage = 256);
 		virtual ~ILoggerProvider();
-		virtual inline void Log(LogLevel level, EventId eventId, std::exception exception, std::string message);
-		virtual inline void Log(LogLevel level, EventId eventId, std::string message);
+		virtual inline void Log(const LogLevel level, const EventId &eventId, const std::exception &exception, const std::string &message);
+		virtual inline void Log(const LogLevel level, const EventId &eventId, const std::string &message);
+		virtual inline void resetLoggerMaxSize(size_t _size);
 		virtual inline void Rotate();
-		virtual inline void insertNewOutputStream(std::ostream& output);
-		virtual bool localFileSystemIsOpen();
-		virtual void setConsole(bool flag);
-		virtual	void setLogLevel(LogLevel level);
-		virtual void LogDiagnose(EventId eventId, std::string message);
-		virtual void LogDiagnose(EventId eventId, std::exception exception, std::string message);
-		virtual void LogDebug(EventId eventId, std::string message);
-		virtual void LogDebug(EventId eventId, std::exception exception, std::string message);
-		virtual void LogInformation(EventId eventId, std::string message);
-		virtual void LogInformation(EventId eventId, std::exception exception, std::string message);
-		virtual void LogWaring(EventId eventId, std::string message);
-		virtual void LogWaring(EventId eventId, std::exception exception, std::string message);
-		virtual void LogError(EventId eventId, std::string message);
-		virtual void LogError(EventId eventId, std::exception exception, std::string message);
-		virtual void LogFatal(EventId eventId, std::string message);
-		virtual void LogFatal(EventId eventId, std::exception exception, std::string message);
-		//void LogError();
-		//void LogFatal();
+		virtual inline void insertNewOutputStream(std::ostream &output);
+		virtual inline bool localFileSystemIsOpen();
+		virtual inline void setConsole(bool flag);
+		virtual inline void setLogLevel(const LogLevel& level);
+		virtual inline void LogDiagnose(const EventId &eventId, const std::string &message);
+		virtual inline void LogDiagnose(const EventId &eventId, const std::exception &exception, const std::string &message);
+		virtual inline void LogDebug(const EventId &eventId, const std::string &message);
+		virtual inline void LogDebug(const EventId &eventId, const std::exception &exception, const std::string &message);
+		virtual inline void LogInformation(const EventId &eventId, const std::string &message);
+		virtual inline void LogInformation(const EventId &eventId, const std::exception &exception, const std::string &message);
+		virtual inline void LogWaring(const EventId &eventId, const std::string &message);
+		virtual inline void LogWaring(const EventId &eventId, const std::exception &exception, const std::string &message);
+		virtual inline void LogError(const EventId &eventId, const std::string &message);
+		virtual inline void LogError(const EventId &eventId, const std::exception &exception, const std::string &message);
+		virtual inline void LogFatal(const EventId &eventId, const std::string &message);
+		virtual inline void LogFatal(const EventId &eventId, const std::exception &exception, const std::string &message);
+		// void LogError();
+		// void LogFatal();
 	private:
-		std::vector<std::ostream*> outputStreamArray;
-		std::ofstream* localFileSystem;
+		std::vector<std::ostream *> outputStreamArray;
+		std::ofstream *localFileSystem;
 		std::filesystem::path LogDir;
-		int MaxSize;
+		size_t MaxSize;
 		bool haveConsole;
 		LogLevel currentLogLevel;
 	};
 }
-
 
 #endif // !LOGGER_H

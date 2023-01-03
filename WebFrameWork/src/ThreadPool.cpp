@@ -12,6 +12,16 @@ namespace thread
 		}
 	}
 
+	threadPoolBase::threadPoolBase()
+	{
+		threadnum = std::thread::hardware_concurrency();
+		for (int var = 0; var < threadnum; var++)
+		{
+			working_threads.emplace_back(std::jthread(&threadPoolBase::worker, this));
+			//working_threads[var].detach();
+		}
+	}
+
 	threadPoolBase::~threadPoolBase()
 	{
 		Terminated = true;
@@ -49,40 +59,38 @@ namespace thread
 			context = nullptr;
 			if (!running.empty())
 			{
-				mut_running.lock();
+				mut_running.acquire();
 				if (!running.empty())
 				{
 					context = std::move(running.front());
 					running.pop();
 				}
-				mut_running.unlock();
+				mut_running.release();
 			}
-			if (!urgent.empty())
+			if (!context && !urgent.empty())
 			{
-				mut_urgent.lock();
+				mut_urgent.acquire();
 				if (!urgent.empty())
 				{
 					context = std::move(urgent.front());
 					urgent.pop();
 				}
-				mut_urgent.unlock();
+				mut_urgent.release();
 			}
-			if (!normal.empty())
+			if (!context && !normal.empty())
 			{
-				mut_normal.lock();
+				mut_normal.acquire();
 				if (!normal.empty())
 				{
 					context = std::move(normal.front());
 					normal.pop();
 				}
-				mut_normal.unlock();
+				mut_normal.release();
 			}
 			if (context)
 			{
 				(*context)();
-				mut_objectPool.lock();
 				objectPool.free(context);
-				mut_objectPool.unlock();
 			}
 		}
 	}

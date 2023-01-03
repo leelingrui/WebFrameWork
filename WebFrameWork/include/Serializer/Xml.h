@@ -5,11 +5,13 @@
 #include <streambuf>
 #include <type_traits>
 #include <Windows.h>
+#include <string_view>
 #include <memory>
 #include <Serializer/Charset.h>
 #include <variant>
 #include <map>
 #include <vector>
+#include <fstream>
 #include <sstream>
 #include <iostream>
 
@@ -43,17 +45,13 @@ namespace Serializer
 	{
 	public:
 		virtual void Serialize(std::shared_ptr<XMLTREE> XmlTree, bool serialize) = 0;
-		template <typename _Tp>
-		friend class XmlReader;
-		template <typename _Tp>
-		friend class XmlWriter;
 	};
 
 
 	typedef struct XmlTreeNode
 	{
-		void Serialize(std::stringbuf &result);
-		void SubSerialize(std::stringbuf& result);
+		void Serialize(std::streambuf* result);
+		void SubSerialize(std::streambuf* result);
 		void SetDataValue(std::shared_ptr<std::string>& value);
 		std::shared_ptr<struct XmlTreeNode> GetValueByObjectName(const std::string& objectName);
 		std::shared_ptr<std::string> GetValue();
@@ -109,9 +107,10 @@ namespace Serializer
 	{
 		static_assert(std::is_base_of<IXmlSerializable, _Tp>::value, "attribute must be devided from IXmlSerializable");
 	public:
-		XmlReader()
+		XmlReader() : aimStr(nullptr), charset(nullptr)
 		{
 		};
+
 		_Tp* Deserialize(std::string* str)
 		{
 			aimStr = str;
@@ -122,6 +121,12 @@ namespace Serializer
 			obj->Serialize(root, false);
 			return obj;
 		};
+
+		void Clear()
+		{
+			ptr = 0;
+		};
+	protected:
 		inline void GetBaseData()
 		{
 			std::shared_ptr<std::string> name, value;
@@ -156,7 +161,6 @@ namespace Serializer
 				name->push_back(aimStr->at(ptr));
 				ptr++;
 			}
-			checkElementName(name);
 			return name;
 		}
 
@@ -165,7 +169,7 @@ namespace Serializer
 		{
 			std::shared_ptr<std::string> name(new std::string);
 			SkipBlank();
-			while (aimStr->at(ptr) != ' ' && aimStr->at(ptr) != '\n' && aimStr->at(ptr) != '\t')
+			while (aimStr->at(ptr) != ' ' && aimStr->at(ptr) != '\n' && aimStr->at(ptr) != '\t' && aimStr->at(ptr) != '=')
 			{
 				name->push_back(aimStr->at(ptr));
 				ptr++;
@@ -392,26 +396,12 @@ namespace Serializer
 					ptr += 4;
 					GetBaseData();
 				}
+				else ptr--;
 				GetElement(root);
 			}
 
 		};
-		void Clear()
-		{
-			ptr = 0;
-		};
-		void checkElementName(std::shared_ptr<std::string>& name)
-		{
-			char check[] = "xml";
-			char t = 0;
-			if (name->size() < 3) return;
-			for (int var = 0; var < 3; var++)
-			{
-				if (tolower(name->at(var)) == check[var]) t++;
-			}
-			if (t == 3) throw std::logic_error("element name shouldn\'t be start as xml");
-		};
-	protected:
+
 		std::shared_ptr<XMLTREE> root, base;
 		ICharsetEncoding* charset;
 		size_t ptr = 0;
@@ -424,23 +414,36 @@ namespace Serializer
 	{
 		static_assert(std::is_base_of<IXmlSerializable, _Tp>::value, "attribute must be devided from IXmlSerializable");
 	public:
-		XmlWriter() {};
+		XmlWriter() : charset(nullptr) {};
 		~XmlWriter() {};
 		void Clear()
 		{
-			buffer->str("");
+			buffer.str("");
 		}
-		std::shared_ptr<std::stringbuf> Write(_Tp& object)
+		std::string Write(_Tp& object)
 		{
 			std::shared_ptr<XMLTREE> root(new XMLTREE);
 			object.Serialize(root, true);
-			buffer.reset(new std::stringbuf);
-			root->Serialize(*buffer);
-			return buffer;
+			root->Serialize(&buffer);
+			return std::move(buffer.str());
+		}
+		void Write(_Tp& object, std::ostream* output)
+		{
+			std::shared_ptr<XMLTREE> root(new XMLTREE);
+			object.Serialize(root, true);
+			if (output->good())
+			{
+				root->Serialize(output->rdbuf());
+				*output << std::flush;
+			}
+			else
+			{
+				throw std::runtime_error("output stream not open!");
+			}
 		}
 	protected:
 		ICharsetEncoding* charset;
-		std::shared_ptr<std::stringbuf> buffer;
+		std::stringbuf buffer;
 	};
 #define BEGIN_XML_SERIALIZER(className) \
 		virtual void Serialize(std::shared_ptr<XMLTREE> XmlTree, bool serialize) \

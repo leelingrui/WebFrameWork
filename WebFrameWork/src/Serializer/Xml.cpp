@@ -8,24 +8,24 @@
 
 namespace Serializer
 {
-	void XmlTreeNode::Serialize(std::stringbuf& result)
+	void XmlTreeNode::Serialize(std::streambuf* result)
 	{
-		result.sputn("<?xml version = \"1.0\" encoding = \"UTF - 8\"?>", 44);
-		result.sputc('<');
-		result.sputn(name->c_str(), name->size());
+		result->sputn("<?xml version = \"1.0\" encoding = \"utf-8\"?>", 42);
+		result->sputc('<');
+		result->sputn(name->c_str(), name->size());
 		for (auto& attr : *attribute)
 		{
-			result.sputc(' ');
-			result.sputn(attr.first.c_str(), attr.first.size());
-			result.sputn(" = \"", 4);
-			result.sputn(attr.second->c_str(), attr.second->size());
-			result.sputc('\"');
+			result->sputc(' ');
+			result->sputn(attr.first.c_str(), attr.first.size());
+			result->sputn(" = \"", 4);
+			result->sputn(attr.second->c_str(), attr.second->size());
+			result->sputc('\"');
 		}
-		result.sputc('>');
+		result->sputc('>');
 		switch (Data.index())
 		{
 		case ELEMENT:
-			result.sputn(std::get<ELEMENT>(Data)->c_str(), std::get<ELEMENT>(Data)->size());
+			result->sputn(std::get<ELEMENT>(Data)->c_str(), std::get<ELEMENT>(Data)->size());
 			break;
 		case OBJECT:
 			for (auto& obj : std::get<OBJECT>(Data))
@@ -42,51 +42,51 @@ namespace Serializer
 		default:
 			break;
 		}
-		result.sputn("</", 2);
-		result.sputn(name->c_str(), name->size());
-		result.sputc('>');
+		result->sputn("</", 2);
+		result->sputn(name->c_str(), name->size());
+		result->sputc('>');
 		
 	}
 
-	void XmlTreeNode::SubSerialize(std::stringbuf& result)
+	void XmlTreeNode::SubSerialize(std::streambuf* result)
 	{
 		switch (Data.index())
 		{
-		case ELEMENT:		result.sputc('<');
-			result.sputn(name->c_str(), name->size());
+		case ELEMENT:		result->sputc('<');
+			result->sputn(name->c_str(), name->size());
 			for (auto& attr : *attribute)
 			{
-				result.sputc(' ');
-				result.sputn(attr.first.c_str(), attr.first.size());
-				result.sputn(" = \"", 4);
-				result.sputn(attr.second->c_str(), attr.second->size());
-				result.sputc('\"');
+				result->sputc(' ');
+				result->sputn(attr.first.c_str(), attr.first.size());
+				result->sputn(" = \"", 4);
+				result->sputn(attr.second->c_str(), attr.second->size());
+				result->sputc('\"');
 			}
-			result.sputc('>');
-			result.sputn(std::get<ELEMENT>(Data)->c_str(), std::get<ELEMENT>(Data)->size());
-			result.sputn("</", 2);
-			result.sputn(name->c_str(), name->size());
-			result.sputc('>');
+			result->sputc('>');
+			result->sputn(std::get<ELEMENT>(Data)->c_str(), std::get<ELEMENT>(Data)->size());
+			result->sputn("</", 2);
+			result->sputn(name->c_str(), name->size());
+			result->sputc('>');
 			break;
 		case OBJECT:		
-			result.sputc('<');
-			result.sputn(name->c_str(), name->size());
+			result->sputc('<');
+			result->sputn(name->c_str(), name->size());
 			for (auto& attr : *attribute)
 			{
-				result.sputc(' ');
-				result.sputn(attr.first.c_str(), attr.first.size());
-				result.sputn(" = \"", 4);
-				result.sputn(attr.second->c_str(), attr.second->size());
-				result.sputc('\"');
+				result->sputc(' ');
+				result->sputn(attr.first.c_str(), attr.first.size());
+				result->sputn(" = \"", 4);
+				result->sputn(attr.second->c_str(), attr.second->size());
+				result->sputc('\"');
 			}
-			result.sputc('>');
+			result->sputc('>');
 			for (auto& obj : std::get<OBJECT>(Data))
 			{
 				obj.second->SubSerialize(result);
 			}
-			result.sputn("</", 2);
-			result.sputn(name->c_str(), name->size());
-			result.sputc('>');
+			result->sputn("</", 2);
+			result->sputn(name->c_str(), name->size());
+			result->sputc('>');
 			break;
 		case ARRAY:
 			for (auto& subElement : std::get<ARRAY>(Data))
@@ -95,9 +95,9 @@ namespace Serializer
 			}
 			break;
 		default:
-			result.sputn("</", 2);
-			result.sputn(name->c_str(), name->size());
-			result.sputc('>');
+			result->sputn("</", 2);
+			result->sputn(name->c_str(), name->size());
+			result->sputc('>');
 			break;
 		}
 	}
@@ -217,7 +217,6 @@ namespace Serializer
 					throw std::logic_error("unknow Error");
 					break;
 				}
-
 			}
 			else
 			{
